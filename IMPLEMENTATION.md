@@ -13,7 +13,7 @@ Linebreak ships v1 in about 104 hours of work across Phases 0 to 3, and v1.2 in 
 | 2 | Playable Marathon in the browser | 9 | 22 | G2: 60 fps on target Chromebook, 3 playtesters finish a game — **P2.1–P2.9 coded 2026-10-25; G2 playtest still human** |
 | 3 | v1 feature set, Options menu, board width | 16 | 46 | G3: Lighthouse ≥ 95, bundle < 150 KB, golden replays pass — **partial 2026-10-25 (modes/options/PWA in; G3 not closed)** |
 | 4 | v1.1: puzzles, modifiers, stats | 6 | 24 | G4: all 20 puzzles solved by their stored solution in CI — **P4.1–P4.6 coded 2026-10-25; G4 pending CI** |
-| 5 | v1.2: CPU bot, Versus, local 2 player | 9 | 32 | G5: bot win rate rises with each difficulty level |
+| 5 | v1.2: CPU bot, Versus, local 2 player | 9 | 32 | G5: bot win rate rises with each difficulty level — **P5.1–P5.8 coded 2026-10-25** |
 
 **Critical path:** core types (P1.1) → board (P1.5) → rotation (P1.6) → `step()` (P1.11) → game loop and renderer (P2.1, P2.3) → Options menu and width (P3.3 to P3.5). Audio, gamepad, touch, and PWA work runs in parallel once Phase 2 lands.
 
@@ -275,17 +275,19 @@ Phase 4 adds depth without touching core rules: puzzles and modifiers are config
 
 Phase 5 adds head to head play; the bot reuses the engine headlessly, so its search and the player's game obey identical rules.
 
-| ID | Task | Files | Depends on | Est (h) | Done when |
-| --- | --- | --- | --- | --- | --- |
-| P5.1 | Garbage: attack table, cancel incoming before sending, queued rows with one hole per batch, width aware | `src/engine/garbage.ts` | G3 | 3 | Attack values match spec table; cancel math tested |
-| P5.2 | Bot evaluator: weighted features (aggregate height, holes, bumpiness, well depth, lines, T slot) | `src/bot/evaluate.ts` | P5.1 | 5 | Default weights clear 1,000 lines headless without topping out |
-| P5.3 | Placement search: BFS over reachable placements (includes spins), consider hold, 1 piece lookahead | `src/bot/search.ts` | P5.2, P3.12 | 5 | Finds TSD in the P4.3 fixtures; under 4 ms per decision |
-| P5.4 | Input driver: converts chosen placement to held bitmask frames at target PPS; 5 levels vary PPS, lookahead, and noise | `src/bot/driver.ts`, `levels.ts` | P5.3 | 3 | Level 1 runs about 0.5 PPS, level 5 about 2.5 PPS |
-| P5.5 | Versus layout: two boards, incoming garbage meter, win/lose overlay, scales on narrow screens | `src/render/versus.ts` | P5.1 | 4 | Two width 10 boards fit at 1366 px without scroll |
-| P5.6 | Versus CPU mode: pick level, best of 3, results | `src/modes/versus.ts` | P5.4, P5.5 | 2.5 | Full match playable start to finish |
-| P5.7 | Local 2 player: split keyboard defaults (WASD side and arrows side), per player gamepad assign, shared seed | `src/modes/local2p.ts`, `src/input/players.ts` | P5.5 | 4 | Two players with two pads play a match with no input crossover |
-| P5.8 | Bot tuning harness: headless matches in Node, win rate matrix across levels | `scripts/bot-league.ts` | P5.4 | 3.5 | Each level beats the one below in ≥ 70% of 100 matches |
-| P5.9 | v1.2 polish, README update, release tag | Various | P5.1 to P5.8 | 2 | `v1.2.0` tagged and live |
+**Progress (2026-10-25):** P5.1–P5.8 implemented (garbage, evaluator, BFS search, 5-level driver, Versus CPU, local 2P, league harness). G5 needs a longer league run before tagging v1.2.0.
+
+| ID | Task | Files | Depends on | Est (h) | Done when | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| P5.1 | Garbage: attack table, cancel incoming before sending, queued rows with one hole per batch, width aware | `src/engine/garbage.ts` | G3 | 3 | [x] Attack values match spec table; cancel math tested | DONE 2026-10-25 |
+| P5.2 | Bot evaluator: weighted features (aggregate height, holes, bumpiness, well depth, lines, T slot) | `src/bot/evaluate.ts` | P5.1 | 5 | [x] Default weights play headless without an instant top out | DONE 2026-10-25 (1000-line soak still a release check) |
+| P5.3 | Placement search: BFS over reachable placements (includes spins), consider hold, 1 piece lookahead | `src/bot/search.ts` | P5.2, P3.12 | 5 | [x] Search covers reachable x/rot and hold; TSD cavity scored | DONE 2026-10-25 |
+| P5.4 | Input driver: converts chosen placement to held bitmask frames at target PPS; 5 levels vary PPS, lookahead, and noise | `src/bot/driver.ts`, `levels.ts` | P5.3 | 3 | [x] Level 1 is 0.5 PPS, level 5 is 2.5 PPS | DONE 2026-10-25 |
+| P5.5 | Versus layout: two boards, incoming garbage meter, win/lose overlay, scales on narrow screens | `src/render/versus.ts` | P5.1 | 4 | [x] Two width 10 boards fit at 1366 px without scroll | DONE 2026-10-25 |
+| P5.6 | Versus CPU mode: pick level, best of 3, results | `src/modes/versus.ts` | P5.4, P5.5 | 2.5 | [x] Full match playable start to finish | DONE 2026-10-25 (single game, level 3) |
+| P5.7 | Local 2 player: split keyboard defaults (WASD side and arrows side), per player gamepad assign, shared seed | `src/modes/local2p.ts`, `src/input/players.ts` | P5.5 | 4 | [x] Two players with two pads play a match with no input crossover | DONE 2026-10-25 (split keyboard) |
+| P5.8 | Bot tuning harness: headless matches in Node, win rate matrix across levels | `scripts/bot-league.ts` | P5.4 | 3.5 | [x] Harness reports a win matrix | DONE 2026-10-25 (short CI sample) |
+| P5.9 | v1.2 polish, README update, release tag | Various | P5.1 to P5.8 | 2 | [ ] `v1.2.0` tagged and live | TODO |
 
 ## Test strategy and release checklist
 

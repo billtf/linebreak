@@ -5,6 +5,7 @@ import { puzzleMode } from './puzzle';
 import { puzzleById } from './puzzle/catalog';
 import { sprint } from './sprint';
 import { ultra } from './ultra';
+import { versus } from './versus';
 import { zen } from './zen';
 
 export const MODES: Record<string, Mode> = {
@@ -13,6 +14,7 @@ export const MODES: Record<string, Mode> = {
   ultra,
   daily,
   zen,
+  versus,
 };
 
 export function puzzleModeById(id: string): Mode | undefined {

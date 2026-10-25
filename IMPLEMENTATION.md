@@ -9,7 +9,7 @@ Linebreak ships v1 in about 104 hours of work across Phases 0 to 3, and v1.2 in 
 | Phase | Outcome | Tasks | Effort (h) | Gate to exit |
 | --- | --- | --- | --- | --- |
 | 0 | Repo, CI, Pages deploy live | 7 | 6 | G0: placeholder live at the Pages URL, CI required on `main` — **P0.1–P0.6 DONE 2026-10-25; G0/P0.7 need a human click** |
-| 1 | Headless engine, fully tested | 13 | 30 | G1: coverage ≥ 90%, 10,000 piece determinism test passes |
+| 1 | Headless engine, fully tested | 13 | 30 | G1: coverage ≥ 90%, 10,000 piece determinism test passes — **DONE 2026-10-25** |
 | 2 | Playable Marathon in the browser | 9 | 22 | G2: 60 fps on target Chromebook, 3 playtesters finish a game |
 | 3 | v1 feature set, Options menu, board width | 16 | 46 | G3: Lighthouse ≥ 95, bundle < 150 KB, golden replays pass |
 | 4 | v1.1: puzzles, modifiers, stats | 6 | 24 | G4: all 20 puzzles solved by their stored solution in CI |
@@ -84,21 +84,23 @@ Phase 0 ends with a placeholder page live on GitHub Pages and every later PR blo
 
 Phase 1 delivers the entire game rules as pure TypeScript that runs in Node with no browser, tested to 90% coverage.
 
-| ID | Task | Files | Depends on | Est (h) | Done when |
-| --- | --- | --- | --- | --- | --- |
-| P1.1 | Core types (below) | `src/engine/types.ts` | P0 | 2 | Types compile; reviewed against spec |
-| P1.2 | Default config, Zod schema, deep merge for mode overrides; `board.width` 6 to 16 | `src/engine/config.ts` | P1.1 | 2 | Invalid config (width 5, unknown key) throws with a clear message |
-| P1.3 | mulberry32 PRNG; 7 bag randomizer with serializable state | `src/engine/prng.ts`, `randomizer.ts` | P1.1 | 1.5 | Same seed gives same 10,000 pieces; every bag of 7 holds each piece once |
-| P1.4 | Piece shape tables for 4 rotation states; width aware spawn `floor((width − pieceWidth) / 2)` | `src/engine/pieces.ts` | P1.1 | 1.5 | Spawn columns correct for widths 6, 10, 16 |
-| P1.5 | Board as flat `Uint8Array`: create, collides, place, clearLines, isEmpty | `src/engine/board.ts` | P1.4 | 2.5 | Clears 1 to 4 lines including non adjacent rows |
-| P1.6 | SRS kick data (JLSTZ, I, 180); `tryRotate` returns new piece + kick index used | `src/engine/rotation.ts`, `data/kicks.ts` | P1.5 | 3 | Every kick test from the SRS tables passes as a test case |
-| P1.7 | Gravity curve per level, 20G at level 20; fractional row accumulator; soft drop factor | `src/engine/gravity.ts` | P1.2 | 2 | Level 1 drops 1 row per 60 ticks; level 20 lands instantly |
-| P1.8 | Lock delay 30 frames, 15 move reset cap, top out rules | `src/engine/lock.ts` | P1.5, P1.7 | 2.5 | Piece locks at reset 16; top out fires on blocked spawn |
-| P1.9 | T spin detection: 3 corner rule, last action rotation, mini via front corners, kick 5 upgrades mini | `src/engine/tspin.ts` | P1.6 | 2 | Fixture boards for TSS, TSD, TST, mini all classify correctly |
-| P1.10 | Scoring: clear table, back to back × 1.5, combo, perfect clear, drop points, level up every 10 lines | `src/engine/scoring.ts` | P1.9 | 2.5 | Table driven tests cover every row of the spec scoring table |
-| P1.11 | `step(state, input)`: hold, spawn, move, rotate, drop, lock, clear, emit events | `src/engine/game.ts` | P1.3 to P1.10, P1.13 | 4 | Scripted 20 piece game produces expected board and score |
-| P1.12 | Replay record and playback; golden replay runner in CI | `src/engine/replay.ts`, `tests/replays/` | P1.11 | 2.5 | 3 golden replays reproduce exact final score and board hash |
-| P1.13 | DAS/ARR/DCD in frames from held key bitmask; `ms → frames` at 60 Hz | `src/engine/handling.ts` | P1.1 | 2 | Holding left moves at DAS 10 frames then every 2 frames with defaults |
+**Progress (2026-10-25):** P1.1–P1.13 implemented. Gate G1 met locally: engine coverage ≥ 90% (CI threshold), 10,000-piece determinism test passes, DAS/ARR live in the engine.
+
+| ID | Task | Files | Depends on | Est (h) | Done when | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| P1.1 | Core types (below) | `src/engine/types.ts` | P0 | 2 | [x] Types compile; reviewed against spec | DONE 2026-10-25 |
+| P1.2 | Default config, Zod schema, deep merge for mode overrides; `board.width` 6 to 16 | `src/engine/config.ts` | P1.1 | 2 | [x] Invalid config (width 5, unknown key) throws with a clear message | DONE 2026-10-25 |
+| P1.3 | mulberry32 PRNG; 7 bag randomizer with serializable state | `src/engine/prng.ts`, `randomizer.ts` | P1.1 | 1.5 | [x] Same seed gives same 10,000 pieces; every bag of 7 holds each piece once | DONE 2026-10-25 |
+| P1.4 | Piece shape tables for 4 rotation states; width aware spawn `floor((width − pieceWidth) / 2)` | `src/engine/pieces.ts` | P1.1 | 1.5 | [x] Spawn columns correct for widths 6, 10, 16 | DONE 2026-10-25 |
+| P1.5 | Board as flat `Uint8Array`: create, collides, place, clearLines, isEmpty | `src/engine/board.ts` | P1.4 | 2.5 | [x] Clears 1 to 4 lines including non adjacent rows | DONE 2026-10-25 |
+| P1.6 | SRS kick data (JLSTZ, I, 180); `tryRotate` returns new piece + kick index used | `src/engine/rotation.ts`, `data/kicks.ts` | P1.5 | 3 | [x] Every kick test from the SRS tables passes as a test case | DONE 2026-10-25 |
+| P1.7 | Gravity curve per level, 20G at level 20; fractional row accumulator; soft drop factor | `src/engine/gravity.ts` | P1.2 | 2 | [x] Level 1 drops 1 row per 60 ticks; level 20 lands instantly | DONE 2026-10-25 |
+| P1.8 | Lock delay 30 frames, 15 move reset cap, top out rules | `src/engine/lock.ts` | P1.5, P1.7 | 2.5 | [x] Piece locks at reset 16; top out fires on blocked spawn | DONE 2026-10-25 |
+| P1.9 | T spin detection: 3 corner rule, last action rotation, mini via front corners, kick 5 upgrades mini | `src/engine/tspin.ts` | P1.6 | 2 | [x] Fixture boards for TSS, TSD, TST, mini all classify correctly | DONE 2026-10-25 |
+| P1.10 | Scoring: clear table, back to back × 1.5, combo, perfect clear, drop points, level up every 10 lines | `src/engine/scoring.ts` | P1.9 | 2.5 | [x] Table driven tests cover every row of the spec scoring table | DONE 2026-10-25 |
+| P1.11 | `step(state, input)`: hold, spawn, move, rotate, drop, lock, clear, emit events | `src/engine/game.ts` | P1.3 to P1.10, P1.13 | 4 | [x] Scripted 20 piece game produces expected board and score | DONE 2026-10-25 |
+| P1.12 | Replay record and playback; golden replay runner in CI | `src/engine/replay.ts`, `tests/replays/` | P1.11 | 2.5 | [x] 3 golden replays reproduce exact final score and board hash | DONE 2026-10-25 |
+| P1.13 | DAS/ARR/DCD in frames from held key bitmask; `ms → frames` at 60 Hz | `src/engine/handling.ts` | P1.1 | 2 | [x] Holding left moves at DAS 10 frames then every 2 frames with defaults | DONE 2026-10-25 |
 
 **Core types (P1.1)**
 

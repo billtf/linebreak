@@ -56,6 +56,12 @@ export function drawMinos(
   }
 }
 
+export interface DrawOpts {
+  invisible?: boolean;
+  mirror?: boolean;
+  big?: boolean;
+}
+
 export function renderBoard(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -63,10 +69,12 @@ export function renderBoard(
   ghost: number | null,
   fx: Effects,
   bufferTop: number,
+  opts: DrawOpts = {},
 ): void {
   const { cell, boardX, boardY } = layout;
   const w = state.width;
   const visH = 20;
+  const col = (x: number) => (opts.mirror ? w - 1 - x : x);
 
   ctx.fillStyle = THEME.board;
   ctx.fillRect(boardX, boardY, w * cell, visH * cell);
@@ -95,42 +103,70 @@ export function renderBoard(
     const flash = fx.clearFlash > 0 && fx.clearRows.includes(by);
     for (let x = 0; x < w; x++) {
       const id = state.board[by * w + x] ?? 0;
+      if (opts.invisible && !flash) continue;
       const color = flash ? THEME.flash : pieceColor(id);
       if (!color) continue;
-      drawCell(ctx, boardX + x * cell, boardY + y * cell, cell, color);
+      const dx = boardX + col(x) * cell;
+      const dy = boardY + y * cell;
+      if (opts.big) {
+        const half = cell / 2;
+        drawCell(ctx, dx, dy, half, color);
+        drawCell(ctx, dx + half, dy, half, color);
+        drawCell(ctx, dx, dy + half, half, color);
+        drawCell(ctx, dx + half, dy + half, half, color);
+      } else {
+        drawCell(ctx, dx, dy, cell, color);
+      }
     }
   }
 
   if (state.active && ghost !== null) {
-    const visY = ghost - bufferTop;
-    drawMinos(
+    drawActive(
       ctx,
       state.active.type,
       boardX,
       boardY,
       cell,
       state.active.x,
-      visY,
+      ghost - bufferTop,
       state.active.rot,
       THEME.ghost,
+      col,
     );
   }
 
   if (state.active) {
-    const visY = state.active.y - bufferTop;
     const color =
       fx.lockFlash > 0 ? THEME.lock : PIECE_COLORS[state.active.type];
-    drawMinos(
+    drawActive(
       ctx,
       state.active.type,
       boardX,
       boardY,
       cell,
       state.active.x,
-      visY,
+      state.active.y - bufferTop,
       state.active.rot,
       color,
+      col,
     );
+  }
+}
+
+function drawActive(
+  ctx: CanvasRenderingContext2D,
+  type: PieceType,
+  ox: number,
+  oy: number,
+  cell: number,
+  x: number,
+  y: number,
+  rot: 0 | 1 | 2 | 3,
+  color: string,
+  col: (n: number) => number,
+): void {
+  for (const [cx, cy] of cellsAt(type, x, y, rot)) {
+    drawCell(ctx, ox + col(cx) * cell, oy + cy * cell, cell, color);
   }
 }
 

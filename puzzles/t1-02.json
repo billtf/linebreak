@@ -1,0 +1,15 @@
+{
+  "id": "t1-02",
+  "title": "O in the pocket",
+  "tier": 1,
+  "width": 10,
+  "board": ["XXXX..XXXX"],
+  "sequence": ["O"],
+  "goal": {
+    "type": "clear",
+    "kind": "single"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [[0, 8]]
+}

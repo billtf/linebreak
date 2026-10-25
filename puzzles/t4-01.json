@@ -1,0 +1,14 @@
+{
+  "id": "t4-01",
+  "title": "O perfect",
+  "tier": 4,
+  "width": 10,
+  "board": ["XXXX..XXXX", "XXXX..XXXX"],
+  "sequence": ["O"],
+  "goal": {
+    "type": "empty"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [[0, 8]]
+}

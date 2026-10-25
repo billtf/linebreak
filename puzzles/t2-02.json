@@ -1,0 +1,23 @@
+{
+  "id": "t2-02",
+  "title": "I slides right",
+  "tier": 2,
+  "width": 10,
+  "board": ["XXXXXX...."],
+  "sequence": ["I"],
+  "goal": {
+    "type": "clear",
+    "kind": "single"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [
+    [0, 2],
+    [1, 0],
+    [2, 2],
+    [3, 0],
+    [4, 2],
+    [5, 0],
+    [6, 8]
+  ]
+}

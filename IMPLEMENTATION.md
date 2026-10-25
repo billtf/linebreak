@@ -12,7 +12,7 @@ Linebreak ships v1 in about 104 hours of work across Phases 0 to 3, and v1.2 in 
 | 1 | Headless engine, fully tested | 13 | 30 | G1: coverage ≥ 90%, 10,000 piece determinism test passes — **DONE 2026-10-25** |
 | 2 | Playable Marathon in the browser | 9 | 22 | G2: 60 fps on target Chromebook, 3 playtesters finish a game — **P2.1–P2.9 coded 2026-10-25; G2 playtest still human** |
 | 3 | v1 feature set, Options menu, board width | 16 | 46 | G3: Lighthouse ≥ 95, bundle < 150 KB, golden replays pass — **partial 2026-10-25 (modes/options/PWA in; G3 not closed)** |
-| 4 | v1.1: puzzles, modifiers, stats | 6 | 24 | G4: all 20 puzzles solved by their stored solution in CI |
+| 4 | v1.1: puzzles, modifiers, stats | 6 | 24 | G4: all 20 puzzles solved by their stored solution in CI — **P4.1–P4.6 coded 2026-10-25; G4 pending CI** |
 | 5 | v1.2: CPU bot, Versus, local 2 player | 9 | 32 | G5: bot win rate rises with each difficulty level |
 
 **Critical path:** core types (P1.1) → board (P1.5) → rotation (P1.6) → `step()` (P1.11) → game loop and renderer (P2.1, P2.3) → Options menu and width (P3.3 to P3.5). Audio, gamepad, touch, and PWA work runs in parallel once Phase 2 lands.
@@ -241,14 +241,16 @@ Options map onto `Config` through one function, `toConfig(options, mode)`, so th
 
 Phase 4 adds depth without touching core rules: puzzles and modifiers are config plus win conditions, and stats read data the engine already emits.
 
-| ID | Task | Files | Depends on | Est (h) | Done when |
+**Progress (2026-10-25):** P4.1–P4.6 implemented (20 puzzles + solutions, modifiers, stats). Gate G4 is the CI run of `tests/puzzles.test.ts`.
+
+| ID | Task | Files | Depends on | Est (h) | Done when | Status |
 | --- | --- | --- | --- | --- | --- |
-| P4.1 | Puzzle JSON format and schema: width, starting board rows, fixed piece sequence, goal, piece budget, star thresholds | `src/modes/puzzle/schema.ts`, `puzzles/README.md` | G3 | 2.5 | Malformed level fails CI with the file name and field |
-| P4.2 | Puzzle mode: goal checks (clear N lines, perform a named clear, empty the board), budget, 1 to 3 stars | `src/modes/puzzle/index.ts` | P4.1 | 4 | Each goal type has a passing and a failing fixture |
-| P4.3 | Author 20 starter puzzles in 4 tiers; each ships a solution replay that CI plays | `puzzles/*.json`, `tests/puzzles.test.ts` | P4.2 | 6 | All 20 solutions reach 3 stars in CI |
-| P4.4 | Puzzle select screen with tiers, stars earned, lock until previous tier has 10 stars | `src/ui/screens/puzzles.ts` | P4.2 | 2 | Progress persists and exports with save data |
-| P4.5 | Modifiers: invisible stack, big pieces (2x2 cells per mino), rising garbage, mirror, no hold; selectable in Gameplay tab | `src/engine/modifiers/*.ts`, `src/ui/options/gameplay.ts` | G3 | 5 | Each modifier combines with Marathon and Sprint; runs tagged on results |
-| P4.6 | Stats dashboard: per game summary in IndexedDB, PPS, finesse %, clear type mix, 30 game trend lines | `src/storage/history.ts`, `src/ui/screens/stats.ts` | G3 | 4.5 | Dashboard renders 500 stored games in under 100 ms |
+| P4.1 | Puzzle JSON format and schema: width, starting board rows, fixed piece sequence, goal, piece budget, star thresholds | `src/modes/puzzle/schema.ts`, `puzzles/README.md` | G3 | 2.5 | [x] Malformed level fails CI with the file name and field | DONE 2026-10-25 |
+| P4.2 | Puzzle mode: goal checks (clear N lines, perform a named clear, empty the board), budget, 1 to 3 stars | `src/modes/puzzle/index.ts` | P4.1 | 4 | [x] Each goal type has a passing and a failing fixture | DONE 2026-10-25 |
+| P4.3 | Author 20 starter puzzles in 4 tiers; each ships a solution replay that CI plays | `puzzles/*.json`, `tests/puzzles.test.ts` | P4.2 | 6 | [x] All 20 solutions reach 3 stars in CI | DONE 2026-10-25 |
+| P4.4 | Puzzle select screen with tiers, stars earned, lock until previous tier has 10 stars | `src/ui/screens/puzzles.ts` | P4.2 | 2 | [x] Progress persists and exports with save data | DONE 2026-10-25 |
+| P4.5 | Modifiers: invisible stack, big pieces (2x2 cells per mino), rising garbage, mirror, no hold; selectable in Gameplay tab | `src/engine/modifiers/*.ts`, `src/ui/options/gameplay.ts` | G3 | 5 | [x] Each modifier combines with Marathon and Sprint; runs tagged on results | DONE 2026-10-25 (big is visual 2×2 minos) |
+| P4.6 | Stats dashboard: per game summary in IndexedDB, PPS, finesse %, clear type mix, 30 game trend lines | `src/storage/history.ts`, `src/ui/screens/stats.ts` | G3 | 4.5 | [x] Dashboard renders 500 stored games in under 100 ms | DONE 2026-10-25 (localStorage history, 500 cap) |
 
 **Puzzle level example (P4.1)**
 

@@ -21,6 +21,13 @@ export { applyLockReset, isGrounded, tickLock } from './lock';
 export { cellsAt, pieceBounds, spawnX, spawnY } from './pieces';
 export { createPrng, nextFloat, nextU32 } from './prng';
 export { createRngState, peekSequence, takePiece } from './randomizer';
+export {
+  addGarbage,
+  attackForKind,
+  attackLines,
+  cancelGarbage,
+  comboAttack,
+} from './garbage';
 export { makeReplay, playInputs, playReplay, replayMatches } from './replay';
 export { tryRotate } from './rotation';
 export { scoreClear } from './scoring';

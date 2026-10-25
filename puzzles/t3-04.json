@@ -1,0 +1,15 @@
+{
+  "id": "t3-04",
+  "title": "O double",
+  "tier": 3,
+  "width": 10,
+  "board": ["XXXX..XXXX", "XXXX..XXXX"],
+  "sequence": ["O"],
+  "goal": {
+    "type": "clear",
+    "kind": "double"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [[0, 8]]
+}

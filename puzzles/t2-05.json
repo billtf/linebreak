@@ -1,0 +1,15 @@
+{
+  "id": "t2-05",
+  "title": "Z sits down",
+  "tier": 2,
+  "width": 10,
+  "board": ["XXXX..XXXX"],
+  "sequence": ["Z"],
+  "goal": {
+    "type": "clear",
+    "kind": "single"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [[0, 8]]
+}

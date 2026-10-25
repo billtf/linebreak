@@ -1,0 +1,19 @@
+{
+  "id": "t4-02",
+  "title": "Two I singles",
+  "tier": 4,
+  "width": 10,
+  "board": ["XXX....XXX", "XXX....XXX"],
+  "sequence": ["I", "I"],
+  "goal": {
+    "type": "lines",
+    "count": 2
+  },
+  "budget": 2,
+  "stars": [2, 2, 2],
+  "solution": [
+    [0, 8],
+    [1, 0],
+    [2, 8]
+  ]
+}

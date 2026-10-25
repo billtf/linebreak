@@ -1,0 +1,14 @@
+{
+  "id": "t3-05",
+  "title": "Sweep the well",
+  "tier": 3,
+  "width": 10,
+  "board": ["XXX....XXX"],
+  "sequence": ["I"],
+  "goal": {
+    "type": "empty"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [[0, 8]]
+}

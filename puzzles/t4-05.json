@@ -1,0 +1,15 @@
+{
+  "id": "t4-05",
+  "title": "Two-piece lines",
+  "tier": 4,
+  "width": 10,
+  "board": ["XXXX..XXXX", "XXXX..XXXX"],
+  "sequence": ["O", "O"],
+  "goal": {
+    "type": "lines",
+    "count": 2
+  },
+  "budget": 2,
+  "stars": [1, 2, 2],
+  "solution": [[0, 8]]
+}

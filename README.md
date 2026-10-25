@@ -17,7 +17,7 @@ Pushes and merges to `main` run `.github/workflows/deploy.yml`. Until that Pages
 
 ## Requirements
 
-- Node 20 (see `.nvmrc`)
+- Node 24 (see `.nvmrc`)
 
 ```sh
 nvm use

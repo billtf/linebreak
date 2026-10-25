@@ -381,9 +381,9 @@ Six phases take it from empty repo to v1.2; each phase ends with a deployable bu
 
 **Phase 1: Engine core (headless)**
 
-- [ ] Board, pieces, seeded 7 bag, SRS kicks, gravity, lock delay, line clears, scoring, T spin detection
-- [ ] Unit tests for every kick case and every scoring row; coverage ≥ 90%
-- [ ] Same seed produces identical piece sequence across 10,000 pieces
+- [x] Board, pieces, seeded 7 bag, SRS kicks, gravity, lock delay, line clears, scoring, T spin detection
+- [x] Unit tests for every kick case and every scoring row; coverage ≥ 90%
+- [x] Same seed produces identical piece sequence across 10,000 pieces
 
 **Phase 2: Playable Marathon**
 

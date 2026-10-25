@@ -1,7 +1,7 @@
 {
   "name": "linebreak",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "A browser falling-block puzzle that ships as a static site on GitHub Pages.",
   "engines": {
@@ -41,5 +41,8 @@
     "typescript-eslint": "^8.72.0",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   }
 }

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A browser falling-block puzzle that ships as a static site on GitHub Pages.",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "vite",

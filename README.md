@@ -39,7 +39,7 @@ npm install
 
 ## Play
 
-Marathon, Sprint, Ultra, Daily, Zen, and 20 starter puzzles are playable in the browser (`npm run dev`). Keyboard:
+Marathon, Sprint, Ultra, Daily, Zen, 20 starter puzzles, Versus CPU, and local 2P are playable in the browser (`npm run dev`). Keyboard:
 
 - Move ← → · Soft drop ↓ · Hard drop Space
 - Rotate CW ↑ or X · CCW Z · 180 A · Hold C or Shift

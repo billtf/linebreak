@@ -16,15 +16,24 @@ import {
 import { Input } from '@/engine';
 
 import { formatDebug, frameP95, isDebug, recordFrame } from './debug';
+import { createDriver } from './bot/driver';
+import { botLevel } from './bot/levels';
 import { firstGamepad, pollGamepad } from './input/gamepad';
 import { createKeyboard } from './input/keyboard';
+import { P1_MAP, P2_MAP } from './input/players';
 import { createLoop } from './loop';
 import { modeById, puzzleModeById } from './modes/catalog';
+import {
+  createVersusMatch,
+  versusOnEvents,
+  type VersusMatch,
+} from './modes/versus';
 import { PUZZLES, puzzleById } from './modes/puzzle/catalog';
 import { createPuzzleGame } from './modes/puzzle';
 import { dailyShareCard } from './ui/share';
 import type { Mode, ModeResult } from './modes/mode';
 import { renderBoard } from './render/canvas';
+import { renderVersus } from './render/versus';
 import { createEffects } from './render/effects';
 import { renderHud } from './render/hud';
 import { computeLayout } from './render/layout';
@@ -77,6 +86,8 @@ const ctx: CanvasRenderingContext2D = gfx;
 const debug = isDebug();
 const router = createRouter('title');
 const keyboard = createKeyboard();
+const keyboardP1 = createKeyboard(window, P1_MAP);
+const keyboardP2 = createKeyboard(window, P2_MAP);
 let options: Options = loadOptions();
 let fx = createEffects(reducedMotionOn(options));
 let cfg: Config = toConfig(options, 'marathon');
@@ -93,6 +104,13 @@ let pbDelta = 0;
 let startedAt = 0;
 let lockCount = 0;
 let lastFrame = 0;
+let versus: {
+  other: GameState;
+  match: VersusMatch;
+  bot: ReturnType<typeof createDriver> | null;
+  fx: ReturnType<typeof createEffects>;
+  local: boolean;
+} | null = null;
 
 function overlayHtml(): string {
   if (router.screen === 'title') return titleScreen();
@@ -136,6 +154,32 @@ function startGame(modeId?: string, nextPuzzle?: string): void {
   startedAt = performance.now();
   fx.lockFlash = 0;
   fx.clearFlash = 0;
+  versus = null;
+  router.go('play');
+  paintOverlay();
+}
+
+function startVersus(local = false): void {
+  puzzleId = null;
+  mode = modeById('versus');
+  cfg = mode.config(toConfig(options, 'versus'), {});
+  const seed = mode.seed();
+  state = createGame(seed, cfg);
+  versus = {
+    other: createGame(seed, cfg),
+    match: createVersusMatch(),
+    bot: local ? null : createDriver(botLevel(3)),
+    fx: createEffects(reducedMotionOn(options)),
+    local,
+  };
+  if (local) {
+    keyboardP1.attach();
+    keyboardP2.attach();
+  }
+  fx = createEffects(reducedMotionOn(options));
+  result = null;
+  lockCount = 0;
+  startedAt = performance.now();
   router.go('play');
   paintOverlay();
 }
@@ -202,14 +246,28 @@ function draw(now: number): void {
   ctx.fillRect(0, 0, w, h);
   if (!state) return;
   const layout = computeLayout(w, h, state.width);
-  const ghost = ghostY(state, cfg);
-  renderBoard(ctx, state, layout, ghost, fx, visibleTop(cfg), {
-    invisible: cfg.modifiers.includes('invisible'),
-    mirror: cfg.modifiers.includes('mirror'),
-    big: cfg.modifiers.includes('big'),
-  });
   const elapsed = startedAt ? (now - startedAt) / 1000 : 0;
-  renderHud(ctx, state, layout, fx, elapsed);
+  if (versus) {
+    renderVersus(
+      ctx,
+      state,
+      versus.other,
+      cfg,
+      fx,
+      versus.fx,
+      w,
+      h,
+      versus.match.incoming,
+    );
+  } else {
+    const ghost = ghostY(state, cfg);
+    renderBoard(ctx, state, layout, ghost, fx, visibleTop(cfg), {
+      invisible: cfg.modifiers.includes('invisible'),
+      mirror: cfg.modifiers.includes('mirror'),
+      big: cfg.modifiers.includes('big'),
+    });
+    renderHud(ctx, state, layout, fx, elapsed);
+  }
   if (debug) {
     const dt = lastFrame ? now - lastFrame : 0;
     recordFrame(dt);
@@ -235,7 +293,9 @@ function tick(): void {
     startGame();
     return;
   }
-  let held = keyboard.held | pollGamepad(firstGamepad());
+  let held = versus?.local
+    ? keyboardP1.held
+    : keyboard.held | pollGamepad(firstGamepad());
   if (cfg.modifiers.includes('mirror')) {
     const left = held & Input.Left;
     const right = held & Input.Right;
@@ -275,6 +335,29 @@ function tick(): void {
     if (event.t === 'topOut') live.textContent = 'top out';
   }
   fx.tick();
+  if (versus) {
+    const otherHeld = versus.local
+      ? keyboardP2.held
+      : versus.bot
+        ? versus.bot.tick(versus.other, cfg)
+        : 0;
+    const other = step(versus.other, otherHeld, cfg);
+    for (const event of other.events) versus.fx.onEvent(event);
+    versus.fx.tick();
+    versusOnEvents(versus.match, 0, events, versus.other, cfg);
+    versusOnEvents(versus.match, 1, other.events, state, cfg);
+    if (versus.match.over) {
+      finish({
+        won: versus.match.over === 'b',
+        reason: 'clear',
+        score: state.score,
+        lines: state.lines,
+        frames: state.frame,
+        tags: [versus.local ? 'Local 2P' : 'Versus'],
+      });
+      return;
+    }
+  }
   const ended = mode.result(state);
   if (ended) finish(ended);
 }
@@ -287,6 +370,12 @@ overlay.addEventListener('click', (event) => {
   const act = btn.dataset['act'];
   if (act === 'play' || act === 'retry') {
     startGame(btn.dataset['mode'] ?? mode.id, btn.dataset['puzzle']);
+  }
+  if (act === 'versus') {
+    startVersus(false);
+  }
+  if (act === 'local2p') {
+    startVersus(true);
   }
   if (act === 'puzzles') {
     router.go('puzzles');
@@ -332,6 +421,7 @@ overlay.addEventListener('click', (event) => {
   }
   if (act === 'quit') {
     state = null;
+    versus = null;
     router.go('title');
     paintOverlay();
   }

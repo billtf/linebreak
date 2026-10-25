@@ -1,0 +1,19 @@
+{
+  "id": "t3-03",
+  "title": "I quad",
+  "tier": 3,
+  "width": 10,
+  "board": ["XXXXX.XXXX", "XXXXX.XXXX", "XXXXX.XXXX", "XXXXX.XXXX"],
+  "sequence": ["I"],
+  "goal": {
+    "type": "clear",
+    "kind": "quad"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [
+    [0, 16],
+    [1, 0],
+    [2, 8]
+  ]
+}

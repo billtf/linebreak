@@ -6,6 +6,9 @@ export interface ModeResult {
   score: number;
   lines: number;
   frames: number;
+  stars?: number;
+  tags?: string[];
+  puzzleId?: string;
 }
 
 export interface Mode {

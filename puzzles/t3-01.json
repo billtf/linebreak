@@ -1,0 +1,16 @@
+{
+  "id": "t3-01",
+  "title": "I double",
+  "tier": 3,
+  "width": 10,
+  "board": ["XXXXX.XXXX", "XXXXX.XXXX"],
+  "sequence": ["I"],
+  "goal": { "type": "clear", "kind": "double" },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [
+    [0, 16],
+    [1, 0],
+    [2, 8]
+  ]
+}

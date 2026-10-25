@@ -9,6 +9,7 @@ export interface Options {
     queueLength: number;
     hold: boolean;
     allow180: boolean;
+    modifiers: string[];
   };
   handling: {
     dasMs: number;
@@ -28,6 +29,7 @@ export const DEFAULT_OPTIONS: Options = {
     queueLength: 5,
     hold: true,
     allow180: true,
+    modifiers: [],
   },
   handling: {
     dasMs: 167,
@@ -70,7 +72,8 @@ export function toConfig(options: Options, modeId: string): Config {
     pieces: {
       ...DEFAULT_CONFIG.pieces,
       previewCount: options.gameplay.queueLength,
-      holdEnabled: options.gameplay.hold,
+      holdEnabled:
+        options.gameplay.hold && !options.gameplay.modifiers.includes('noHold'),
       allow180: options.gameplay.allow180,
     },
     handling: {
@@ -88,7 +91,10 @@ export function toConfig(options: Options, modeId: string): Config {
       gravityScale: options.assists.gravityScale,
       ghost: true,
     },
-    modifiers: modeId === 'zen' ? ['zen'] : [],
+    modifiers: [
+      ...(modeId === 'zen' ? ['zen'] : []),
+      ...options.gameplay.modifiers.filter((m) => m !== 'noHold'),
+    ],
   });
 }
 

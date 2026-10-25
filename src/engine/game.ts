@@ -81,6 +81,12 @@ function pullNext(state: GameState, cfg: Config): PieceType {
 }
 
 function spawn(state: GameState, cfg: Config, events: GameEvent[]): boolean {
+  if (cfg.modifiers.includes('sequence') && state.queue.length === 0) {
+    state.active = null;
+    state.over = true;
+    events.push({ t: 'topOut' });
+    return false;
+  }
   const type = pullNext(state, cfg);
   const piece = makeActive(type, state.width, cfg.board.bufferHeight);
   const height = totalHeight(cfg);

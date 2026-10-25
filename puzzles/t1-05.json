@@ -1,0 +1,15 @@
+{
+  "id": "t1-05",
+  "title": "J covers three",
+  "tier": 1,
+  "width": 10,
+  "board": ["XXX...XXXX"],
+  "sequence": ["J"],
+  "goal": {
+    "type": "clear",
+    "kind": "single"
+  },
+  "budget": 1,
+  "stars": [1, 1, 1],
+  "solution": [[0, 8]]
+}

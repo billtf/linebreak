@@ -20,7 +20,14 @@ export function optionsScreen(options: Options, tab = 'gameplay'): string {
           </label>
           <label>Queue <input data-opt="gameplay.queueLength" type="number" min="1" max="6" value="${options.gameplay.queueLength}" /></label>
           <label><input data-opt="gameplay.hold" type="checkbox" ${options.gameplay.hold ? 'checked' : ''}/> Hold</label>
-          <label><input data-opt="gameplay.allow180" type="checkbox" ${options.gameplay.allow180 ? 'checked' : ''}/> 180 rotation</label>`
+          <label><input data-opt="gameplay.allow180" type="checkbox" ${options.gameplay.allow180 ? 'checked' : ''}/> 180 rotation</label>
+          <p class="muted">Modifiers (next game · tagged on results)</p>
+          ${['invisible', 'big', 'rising', 'mirror', 'noHold']
+            .map((m) => {
+              const on = options.gameplay.modifiers.includes(m);
+              return `<label><input data-opt="gameplay.modifier.${m}" type="checkbox" ${on ? 'checked' : ''}/> ${m}</label>`;
+            })
+            .join('')}`
           : ''
       }
       ${
@@ -71,6 +78,13 @@ export function applyOption(
     next.gameplay.queueLength = clamp(Number(value), 1, 6);
   if (path === 'gameplay.hold') next.gameplay.hold = Boolean(value);
   if (path === 'gameplay.allow180') next.gameplay.allow180 = Boolean(value);
+  if (path.startsWith('gameplay.modifier.')) {
+    const name = path.slice('gameplay.modifier.'.length);
+    const set = new Set(next.gameplay.modifiers);
+    if (value) set.add(name);
+    else set.delete(name);
+    next.gameplay.modifiers = [...set];
+  }
   if (path === 'handling.dasMs')
     next.handling.dasMs = clamp(Number(value), 0, 400);
   if (path === 'handling.arrMs')

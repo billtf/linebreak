@@ -1,20 +1,27 @@
 import { registerSW } from 'virtual:pwa-register';
 
+import './style.css';
+
 import {
+  addGarbage,
   cloneState,
   createGame,
   ghostY,
   step,
+  totalHeight,
   visibleTop,
   type Config,
   type GameState,
 } from '@/engine';
+import { Input } from '@/engine';
 
 import { formatDebug, frameP95, isDebug, recordFrame } from './debug';
 import { firstGamepad, pollGamepad } from './input/gamepad';
 import { createKeyboard } from './input/keyboard';
 import { createLoop } from './loop';
-import { modeById } from './modes/catalog';
+import { modeById, puzzleModeById } from './modes/catalog';
+import { PUZZLES, puzzleById } from './modes/puzzle/catalog';
+import { createPuzzleGame } from './modes/puzzle';
 import { dailyShareCard } from './ui/share';
 import type { Mode, ModeResult } from './modes/mode';
 import { renderBoard } from './render/canvas';
@@ -23,6 +30,7 @@ import { renderHud } from './render/hud';
 import { computeLayout } from './render/layout';
 import { THEME } from './render/theme';
 import { exportSave, importSave, resetSave } from './storage/data';
+import { appendHistory, loadHistory } from './storage/history';
 import { writePbIfBetter, type PersonalBest } from './storage/local';
 import {
   loadOptions,
@@ -31,10 +39,13 @@ import {
   toConfig,
   type Options,
 } from './storage/options';
+import { loadPuzzleStars, recordPuzzleStars } from './storage/puzzles';
 import { createRouter } from './ui/router';
 import { applyOption, optionsScreen } from './ui/screens/options';
 import { pauseScreen } from './ui/screens/pause';
+import { puzzlesScreen } from './ui/screens/puzzles';
 import { resultsScreen } from './ui/screens/results';
+import { statsScreen } from './ui/screens/stats';
 import { titleScreen } from './ui/screens/title';
 
 const app = document.querySelector('#app');
@@ -70,9 +81,11 @@ let options: Options = loadOptions();
 let fx = createEffects(reducedMotionOn(options));
 let cfg: Config = toConfig(options, 'marathon');
 let mode: Mode = modeById('marathon');
+let puzzleId: string | null = null;
 let optionsTab = 'gameplay';
 let optionsReturn: 'title' | 'pause' = 'title';
 const undoBuf: GameState[] = [];
+const clears: Record<string, number> = {};
 
 let state: GameState | null = null;
 let result: ModeResult | null = null;
@@ -85,6 +98,9 @@ function overlayHtml(): string {
   if (router.screen === 'title') return titleScreen();
   if (router.screen === 'pause') return pauseScreen();
   if (router.screen === 'options') return optionsScreen(options, optionsTab);
+  if (router.screen === 'puzzles')
+    return puzzlesScreen(PUZZLES, loadPuzzleStars());
+  if (router.screen === 'stats') return statsScreen(loadHistory());
   if (router.screen === 'results' && result) {
     return resultsScreen(result, pbDelta, lockCount);
   }
@@ -97,14 +113,26 @@ function paintOverlay(): void {
   overlay.querySelector<HTMLButtonElement>('button[autofocus]')?.focus();
 }
 
-function startGame(modeId?: string): void {
-  mode = modeById(modeId ?? mode.id);
-  cfg = mode.config(toConfig(options, mode.id), {});
+function startGame(modeId?: string, nextPuzzle?: string): void {
+  if (nextPuzzle) puzzleId = nextPuzzle;
+  if (modeId === 'puzzle' || (modeId === undefined && puzzleId)) {
+    const level = puzzleById(puzzleId ?? '');
+    if (!level) return;
+    mode = puzzleModeById(level.id) ?? modeById('marathon');
+    const pack = createPuzzleGame(level, toConfig(options, 'puzzle'));
+    cfg = pack.cfg;
+    state = pack.state;
+  } else {
+    puzzleId = null;
+    mode = modeById(modeId ?? mode.id);
+    cfg = mode.config(toConfig(options, mode.id), {});
+    state = createGame(mode.seed(), cfg);
+  }
   fx = createEffects(reducedMotionOn(options));
-  state = createGame(mode.seed(), cfg);
   result = null;
   lockCount = 0;
   undoBuf.length = 0;
+  for (const key of Object.keys(clears)) delete clears[key];
   startedAt = performance.now();
   fx.lockFlash = 0;
   fx.clearFlash = 0;
@@ -119,11 +147,36 @@ function finish(next: ModeResult): void {
     lines: next.lines,
     frames: next.frames,
   };
-  const assisted = options.assists.undo || options.assists.gravityScale !== 1;
+  const tags = [
+    ...(next.tags ?? []),
+    ...options.gameplay.modifiers,
+    ...(cfg.board.width !== 10 ? ['Custom'] : []),
+  ];
+  next.tags = tags;
+  const assisted =
+    options.assists.undo ||
+    options.assists.gravityScale !== 1 ||
+    options.gameplay.modifiers.length > 0;
   const saved = assisted
     ? { pb: rec, delta: 0, isNew: false }
     : writePbIfBetter(mode.pbKey(cfg), rec);
   pbDelta = saved.delta;
+  if (next.puzzleId && next.stars) {
+    recordPuzzleStars(next.puzzleId, next.stars);
+  }
+  const elapsed = next.frames / 60;
+  appendHistory({
+    at: Date.now(),
+    mode: mode.id,
+    width: cfg.board.width,
+    score: next.score,
+    lines: next.lines,
+    frames: next.frames,
+    pps: elapsed > 0 ? lockCount / elapsed : 0,
+    finesse: 0,
+    clears: { ...clears },
+    tags,
+  });
   if (mode.id === 'daily') {
     void navigator.clipboard.writeText(dailyShareCard(next.score, next.lines));
   }
@@ -150,7 +203,11 @@ function draw(now: number): void {
   if (!state) return;
   const layout = computeLayout(w, h, state.width);
   const ghost = ghostY(state, cfg);
-  renderBoard(ctx, state, layout, ghost, fx, visibleTop(cfg));
+  renderBoard(ctx, state, layout, ghost, fx, visibleTop(cfg), {
+    invisible: cfg.modifiers.includes('invisible'),
+    mirror: cfg.modifiers.includes('mirror'),
+    big: cfg.modifiers.includes('big'),
+  });
   const elapsed = startedAt ? (now - startedAt) / 1000 : 0;
   renderHud(ctx, state, layout, fx, elapsed);
   if (debug) {
@@ -178,7 +235,15 @@ function tick(): void {
     startGame();
     return;
   }
-  const held = keyboard.held | pollGamepad(firstGamepad());
+  let held = keyboard.held | pollGamepad(firstGamepad());
+  if (cfg.modifiers.includes('mirror')) {
+    const left = held & Input.Left;
+    const right = held & Input.Right;
+    held =
+      (held & ~(Input.Left | Input.Right)) |
+      (left ? Input.Right : 0) |
+      (right ? Input.Left : 0);
+  }
   const { events } = step(state, held, cfg);
   for (const event of events) {
     fx.onEvent(event);
@@ -189,6 +254,15 @@ function tick(): void {
         undoBuf.push(cloneState(state));
         if (undoBuf.length > 20) undoBuf.shift();
       }
+      if (cfg.modifiers.includes('rising') && lockCount % 10 === 0) {
+        addGarbage(
+          state.board,
+          state.width,
+          totalHeight(cfg),
+          1,
+          state.frame % state.width,
+        );
+      }
     }
     if (
       event.t === 'clear' &&
@@ -196,6 +270,7 @@ function tick(): void {
       event.kind !== 'tspinMini'
     ) {
       live.textContent = event.kind;
+      clears[event.kind] = (clears[event.kind] ?? 0) + 1;
     }
     if (event.t === 'topOut') live.textContent = 'top out';
   }
@@ -211,7 +286,15 @@ overlay.addEventListener('click', (event) => {
   if (!btn) return;
   const act = btn.dataset['act'];
   if (act === 'play' || act === 'retry') {
-    startGame(btn.dataset['mode'] ?? mode.id);
+    startGame(btn.dataset['mode'] ?? mode.id, btn.dataset['puzzle']);
+  }
+  if (act === 'puzzles') {
+    router.go('puzzles');
+    paintOverlay();
+  }
+  if (act === 'stats') {
+    router.go('stats');
+    paintOverlay();
   }
   if (act === 'resume') {
     router.go('play');

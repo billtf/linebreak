@@ -1,7 +1,9 @@
+import { registerSW } from 'virtual:pwa-register';
+
 import {
+  cloneState,
   createGame,
   ghostY,
-  loadConfig,
   step,
   visibleTop,
   type Config,
@@ -9,17 +11,28 @@ import {
 } from '@/engine';
 
 import { formatDebug, frameP95, isDebug, recordFrame } from './debug';
+import { firstGamepad, pollGamepad } from './input/gamepad';
 import { createKeyboard } from './input/keyboard';
 import { createLoop } from './loop';
-import { marathon } from './modes/marathon';
-import type { ModeResult } from './modes/mode';
+import { modeById } from './modes/catalog';
+import { dailyShareCard } from './ui/share';
+import type { Mode, ModeResult } from './modes/mode';
 import { renderBoard } from './render/canvas';
 import { createEffects } from './render/effects';
 import { renderHud } from './render/hud';
 import { computeLayout } from './render/layout';
 import { THEME } from './render/theme';
+import { exportSave, importSave, resetSave } from './storage/data';
 import { writePbIfBetter, type PersonalBest } from './storage/local';
+import {
+  loadOptions,
+  reducedMotionOn,
+  saveOptions,
+  toConfig,
+  type Options,
+} from './storage/options';
 import { createRouter } from './ui/router';
+import { applyOption, optionsScreen } from './ui/screens/options';
 import { pauseScreen } from './ui/screens/pause';
 import { resultsScreen } from './ui/screens/results';
 import { titleScreen } from './ui/screens/title';
@@ -50,13 +63,16 @@ const gfx = canvas.getContext('2d');
 if (!gfx) throw new Error('canvas 2d unavailable');
 const ctx: CanvasRenderingContext2D = gfx;
 
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const debug = isDebug();
 const router = createRouter('title');
 const keyboard = createKeyboard();
-const fx = createEffects(reducedMotion);
-const cfg: Config = loadConfig();
-const mode = marathon;
+let options: Options = loadOptions();
+let fx = createEffects(reducedMotionOn(options));
+let cfg: Config = toConfig(options, 'marathon');
+let mode: Mode = modeById('marathon');
+let optionsTab = 'gameplay';
+let optionsReturn: 'title' | 'pause' = 'title';
+const undoBuf: GameState[] = [];
 
 let state: GameState | null = null;
 let result: ModeResult | null = null;
@@ -68,6 +84,7 @@ let lastFrame = 0;
 function overlayHtml(): string {
   if (router.screen === 'title') return titleScreen();
   if (router.screen === 'pause') return pauseScreen();
+  if (router.screen === 'options') return optionsScreen(options, optionsTab);
   if (router.screen === 'results' && result) {
     return resultsScreen(result, pbDelta, lockCount);
   }
@@ -80,10 +97,14 @@ function paintOverlay(): void {
   overlay.querySelector<HTMLButtonElement>('button[autofocus]')?.focus();
 }
 
-function startGame(): void {
+function startGame(modeId?: string): void {
+  mode = modeById(modeId ?? mode.id);
+  cfg = mode.config(toConfig(options, mode.id), {});
+  fx = createEffects(reducedMotionOn(options));
   state = createGame(mode.seed(), cfg);
   result = null;
   lockCount = 0;
+  undoBuf.length = 0;
   startedAt = performance.now();
   fx.lockFlash = 0;
   fx.clearFlash = 0;
@@ -98,8 +119,14 @@ function finish(next: ModeResult): void {
     lines: next.lines,
     frames: next.frames,
   };
-  const saved = writePbIfBetter(mode.pbKey(cfg), rec);
+  const assisted = options.assists.undo || options.assists.gravityScale !== 1;
+  const saved = assisted
+    ? { pb: rec, delta: 0, isNew: false }
+    : writePbIfBetter(mode.pbKey(cfg), rec);
   pbDelta = saved.delta;
+  if (mode.id === 'daily') {
+    void navigator.clipboard.writeText(dailyShareCard(next.score, next.lines));
+  }
   router.go('results');
   paintOverlay();
 }
@@ -151,11 +178,18 @@ function tick(): void {
     startGame();
     return;
   }
-  const { events } = step(state, keyboard.held, cfg);
+  const held = keyboard.held | pollGamepad(firstGamepad());
+  const { events } = step(state, held, cfg);
   for (const event of events) {
     fx.onEvent(event);
     mode.onEvent(event, state);
-    if (event.t === 'lock') lockCount += 1;
+    if (event.t === 'lock') {
+      lockCount += 1;
+      if (options.assists.undo) {
+        undoBuf.push(cloneState(state));
+        if (undoBuf.length > 20) undoBuf.shift();
+      }
+    }
     if (
       event.t === 'clear' &&
       event.kind !== 'tspin' &&
@@ -176,9 +210,41 @@ overlay.addEventListener('click', (event) => {
   );
   if (!btn) return;
   const act = btn.dataset['act'];
-  if (act === 'play' || act === 'retry') startGame();
+  if (act === 'play' || act === 'retry') {
+    startGame(btn.dataset['mode'] ?? mode.id);
+  }
   if (act === 'resume') {
     router.go('play');
+    paintOverlay();
+  }
+  if (act === 'options') {
+    optionsReturn = router.screen === 'pause' ? 'pause' : 'title';
+    router.go('options');
+    paintOverlay();
+  }
+  if (act === 'close-options') {
+    router.go(optionsReturn);
+    paintOverlay();
+  }
+  if (act === 'export') {
+    void navigator.clipboard.writeText(exportSave());
+    live.textContent = 'save copied';
+  }
+  if (act === 'import') {
+    const raw = prompt('Paste save JSON');
+    if (raw) {
+      try {
+        importSave(raw);
+        options = loadOptions();
+        live.textContent = 'save imported';
+      } catch {
+        live.textContent = 'import failed';
+      }
+    }
+  }
+  if (act === 'reset-data' && confirm('Reset all Linebreak data?')) {
+    resetSave();
+    options = loadOptions();
     paintOverlay();
   }
   if (act === 'quit') {
@@ -186,6 +252,27 @@ overlay.addEventListener('click', (event) => {
     router.go('title');
     paintOverlay();
   }
+});
+
+overlay.addEventListener('input', (event) => {
+  const el = event.target as HTMLInputElement | HTMLSelectElement;
+  const path = el.dataset['opt'];
+  if (!path) return;
+  const value =
+    el instanceof HTMLInputElement && el.type === 'checkbox'
+      ? el.checked
+      : el.value;
+  options = applyOption(options, path, value);
+  saveOptions(options);
+});
+
+overlay.addEventListener('click', (event) => {
+  const tabBtn = (event.target as HTMLElement).closest<HTMLButtonElement>(
+    'button[data-tab]',
+  );
+  if (!tabBtn?.dataset['tab']) return;
+  optionsTab = tabBtn.dataset['tab'];
+  paintOverlay();
 });
 
 window.addEventListener('keydown', (event) => {
@@ -208,6 +295,16 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
     startGame();
   }
+  if (
+    options.assists.undo &&
+    router.screen === 'play' &&
+    event.code === 'KeyZ' &&
+    (event.ctrlKey || event.metaKey)
+  ) {
+    event.preventDefault();
+    const prev = undoBuf.pop();
+    if (prev) state = prev;
+  }
 });
 
 keyboard.attach();
@@ -218,3 +315,5 @@ paintOverlay();
 createLoop(60, tick, (now) => {
   draw(now);
 }).start();
+
+registerSW({ immediate: true });

@@ -49,6 +49,36 @@ body,
   background: #1a1a1a;
   border: 1px solid #2c2c2c;
   text-align: center;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}
+
+.panel.wide {
+  width: min(28rem, calc(100vw - 2rem));
+  text-align: left;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+
+.tabs button {
+  width: auto;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.tabs button.on {
+  border-color: #c4a35a;
+}
+
+.panel label {
+  display: block;
+  margin: 0.45rem 0;
+  color: #d4d1cb;
 }
 
 .panel h1,

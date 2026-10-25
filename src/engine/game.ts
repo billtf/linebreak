@@ -4,8 +4,10 @@ import {
   cloneBoard,
   collides,
   createBoard,
+  getCell,
   isEmpty,
   place,
+  setCell,
 } from './board';
 import type { Config } from './config';
 import { loadConfig, totalHeight } from './config';
@@ -82,7 +84,7 @@ function spawn(state: GameState, cfg: Config, events: GameEvent[]): boolean {
   const type = pullNext(state, cfg);
   const piece = makeActive(type, state.width, cfg.board.bufferHeight);
   const height = totalHeight(cfg);
-  if (
+  const blocked = () =>
     collides(
       state.board,
       state.width,
@@ -91,8 +93,26 @@ function spawn(state: GameState, cfg: Config, events: GameEvent[]): boolean {
       piece.x,
       piece.y,
       piece.rot,
-    )
-  ) {
+    );
+  if (blocked() && cfg.modifiers.includes('zen')) {
+    while (blocked() && !isEmpty(state.board)) {
+      for (let y = height - 1; y > 0; y--) {
+        for (let x = 0; x < state.width; x++) {
+          setCell(
+            state.board,
+            state.width,
+            x,
+            y,
+            getCell(state.board, state.width, x, y - 1),
+          );
+        }
+      }
+      for (let x = 0; x < state.width; x++) {
+        setCell(state.board, state.width, x, 0, 0);
+      }
+    }
+  }
+  if (blocked()) {
     state.active = piece;
     state.over = true;
     events.push({ t: 'topOut' });

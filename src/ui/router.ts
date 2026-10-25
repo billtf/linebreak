@@ -1,4 +1,4 @@
-export type ScreenId = 'title' | 'play' | 'pause' | 'results';
+export type ScreenId = 'title' | 'play' | 'pause' | 'results' | 'options';
 
 export interface Router {
   screen: ScreenId;

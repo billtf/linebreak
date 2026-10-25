@@ -10,7 +10,7 @@ Linebreak ships v1 in about 104 hours of work across Phases 0 to 3, and v1.2 in 
 | --- | --- | --- | --- | --- |
 | 0 | Repo, CI, Pages deploy live | 7 | 6 | G0: placeholder live at the Pages URL, CI required on `main` — **P0.1–P0.6 DONE 2026-10-25; G0/P0.7 need a human click** |
 | 1 | Headless engine, fully tested | 13 | 30 | G1: coverage ≥ 90%, 10,000 piece determinism test passes — **DONE 2026-10-25** |
-| 2 | Playable Marathon in the browser | 9 | 22 | G2: 60 fps on target Chromebook, 3 playtesters finish a game |
+| 2 | Playable Marathon in the browser | 9 | 22 | G2: 60 fps on target Chromebook, 3 playtesters finish a game — **P2.1–P2.9 coded 2026-10-25; G2 playtest still human** |
 | 3 | v1 feature set, Options menu, board width | 16 | 46 | G3: Lighthouse ≥ 95, bundle < 150 KB, golden replays pass |
 | 4 | v1.1: puzzles, modifiers, stats | 6 | 24 | G4: all 20 puzzles solved by their stored solution in CI |
 | 5 | v1.2: CPU bot, Versus, local 2 player | 9 | 32 | G5: bot win rate rises with each difficulty level |
@@ -166,17 +166,19 @@ export interface Replay {
 
 Phase 2 puts the engine on screen: one mode, keyboard only, smooth at 60 fps on a low end Chromebook.
 
-| ID | Task | Files | Depends on | Est (h) | Done when |
-| --- | --- | --- | --- | --- | --- |
-| P2.1 | Fixed timestep loop: `requestAnimationFrame`, accumulator, max 5 catch up ticks, pause on `visibilitychange` | `src/main.ts`, `src/loop.ts` | P1.11 | 2 | Sim runs at 60 Hz on 30, 60, and 144 Hz displays |
-| P2.2 | Keyboard: `KeyboardEvent.code` to held bitmask, `preventDefault` on game keys, release all on blur | `src/input/keyboard.ts` | P1.13 | 2 | Space and arrows never scroll; alt tab doesn't leave a key stuck |
-| P2.3 | Canvas renderer: DPR scaling, cell size formula from spec, board, ghost, active piece, grid | `src/render/canvas.ts`, `layout.ts` | P2.1 | 4 | Crisp on 1x and 2x screens; resizes without blur |
-| P2.4 | HUD: hold box, 5 piece queue, score, level, lines, timer, PPS | `src/render/hud.ts` | P2.3 | 3 | All values match engine state every frame |
-| P2.5 | Effects driven by events: lock brighten, line clear flash and collapse, clear callouts, danger tint above row 17 | `src/render/effects.ts` | P2.3 | 2.5 | Effects never block input; off when reduced motion is on |
-| P2.6 | Mode interface + Marathon (150 lines or endless) | `src/modes/mode.ts`, `marathon.ts` | P1.11 | 2 | Marathon ends at 150 lines with a win state |
-| P2.7 | Screens: title, pause overlay, results (score, PB delta, restart) | `src/ui/screens/*.ts`, `src/ui/router.ts` | P2.6 | 3 | Full loop: title → game → pause → results → retry, keyboard only |
-| P2.8 | Storage wrapper: versioned keys (`lb:v1:pb:marathon:w10`), safe JSON parse | `src/storage/local.ts` | P2.7 | 1 | PB survives reload; corrupt value resets instead of crashing |
-| P2.9 | Performance pass: zero allocations in tick and draw, cached piece paths, debug overlay (`?debug`) with frame time p95 | `src/render/*`, `src/debug.ts` | P2.3 to P2.5 | 2.5 | p95 frame < 16.7 ms on target Chromebook over a 5 minute game |
+**Progress (2026-10-25):** P2.1–P2.9 implemented (loop, keyboard, canvas, HUD, effects, Marathon, screens, storage, `?debug`). Gate G2 still needs a Chromebook fps pass and 3 playtesters.
+
+| ID | Task | Files | Depends on | Est (h) | Done when | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| P2.1 | Fixed timestep loop: `requestAnimationFrame`, accumulator, max 5 catch up ticks, pause on `visibilitychange` | `src/main.ts`, `src/loop.ts` | P1.11 | 2 | [x] Sim runs at 60 Hz on 30, 60, and 144 Hz displays | DONE 2026-10-25 |
+| P2.2 | Keyboard: `KeyboardEvent.code` to held bitmask, `preventDefault` on game keys, release all on blur | `src/input/keyboard.ts` | P1.13 | 2 | [x] Space and arrows never scroll; alt tab doesn't leave a key stuck | DONE 2026-10-25 |
+| P2.3 | Canvas renderer: DPR scaling, cell size formula from spec, board, ghost, active piece, grid | `src/render/canvas.ts`, `layout.ts` | P2.1 | 4 | [x] Crisp on 1x and 2x screens; resizes without blur | DONE 2026-10-25 |
+| P2.4 | HUD: hold box, 5 piece queue, score, level, lines, timer, PPS | `src/render/hud.ts` | P2.3 | 3 | [x] All values match engine state every frame | DONE 2026-10-25 |
+| P2.5 | Effects driven by events: lock brighten, line clear flash and collapse, clear callouts, danger tint above row 17 | `src/render/effects.ts` | P2.3 | 2.5 | [x] Effects never block input; off when reduced motion is on | DONE 2026-10-25 |
+| P2.6 | Mode interface + Marathon (150 lines or endless) | `src/modes/mode.ts`, `marathon.ts` | P1.11 | 2 | [x] Marathon ends at 150 lines with a win state | DONE 2026-10-25 |
+| P2.7 | Screens: title, pause overlay, results (score, PB delta, restart) | `src/ui/screens/*.ts`, `src/ui/router.ts` | P2.6 | 3 | [x] Full loop: title → game → pause → results → retry, keyboard only | DONE 2026-10-25 |
+| P2.8 | Storage wrapper: versioned keys (`lb:v1:pb:marathon:w10`), safe JSON parse | `src/storage/local.ts` | P2.7 | 1 | [x] PB survives reload; corrupt value resets instead of crashing | DONE 2026-10-25 |
+| P2.9 | Performance pass: zero allocations in tick and draw, cached piece paths, debug overlay (`?debug`) with frame time p95 | `src/render/*`, `src/debug.ts` | P2.3 to P2.5 | 2.5 | [ ] p95 frame < 16.7 ms on target Chromebook over a 5 minute game | DONE 2026-10-25 (overlay ready; Chromebook measure is human) |
 
 **Mode interface (P2.6)**
 

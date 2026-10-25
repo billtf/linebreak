@@ -1,13 +1,220 @@
-import './style.css';
+import {
+  createGame,
+  ghostY,
+  loadConfig,
+  step,
+  visibleTop,
+  type Config,
+  type GameState,
+} from '@/engine';
+
+import { formatDebug, frameP95, isDebug, recordFrame } from './debug';
+import { createKeyboard } from './input/keyboard';
+import { createLoop } from './loop';
+import { marathon } from './modes/marathon';
+import type { ModeResult } from './modes/mode';
+import { renderBoard } from './render/canvas';
+import { createEffects } from './render/effects';
+import { renderHud } from './render/hud';
+import { computeLayout } from './render/layout';
+import { THEME } from './render/theme';
+import { writePbIfBetter, type PersonalBest } from './storage/local';
+import { createRouter } from './ui/router';
+import { pauseScreen } from './ui/screens/pause';
+import { resultsScreen } from './ui/screens/results';
+import { titleScreen } from './ui/screens/title';
 
 const app = document.querySelector('#app');
-if (!app) {
-  throw new Error('#app root is missing');
-}
+if (!app) throw new Error('#app root is missing');
 
 app.innerHTML = `
-  <main class="placeholder">
-    <h1>Linebreak</h1>
-    <p>A browser falling-block puzzle. Phase 0 placeholder.</p>
-  </main>
+  <canvas id="game" aria-label="Linebreak playfield"></canvas>
+  <div id="overlay" class="overlay"></div>
+  <div id="live" class="live" aria-live="polite"></div>
+  <div id="debug" class="debug" hidden></div>
 `;
+
+const canvasEl = document.querySelector<HTMLCanvasElement>('#game');
+const overlayEl = document.querySelector<HTMLDivElement>('#overlay');
+const liveEl = document.querySelector<HTMLDivElement>('#live');
+const debugNode = document.querySelector<HTMLDivElement>('#debug');
+if (!canvasEl || !overlayEl || !liveEl || !debugNode) {
+  throw new Error('UI roots missing');
+}
+const canvas: HTMLCanvasElement = canvasEl;
+const overlay: HTMLDivElement = overlayEl;
+const live: HTMLDivElement = liveEl;
+const debugEl: HTMLDivElement = debugNode;
+
+const gfx = canvas.getContext('2d');
+if (!gfx) throw new Error('canvas 2d unavailable');
+const ctx: CanvasRenderingContext2D = gfx;
+
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const debug = isDebug();
+const router = createRouter('title');
+const keyboard = createKeyboard();
+const fx = createEffects(reducedMotion);
+const cfg: Config = loadConfig();
+const mode = marathon;
+
+let state: GameState | null = null;
+let result: ModeResult | null = null;
+let pbDelta = 0;
+let startedAt = 0;
+let lockCount = 0;
+let lastFrame = 0;
+
+function overlayHtml(): string {
+  if (router.screen === 'title') return titleScreen();
+  if (router.screen === 'pause') return pauseScreen();
+  if (router.screen === 'results' && result) {
+    return resultsScreen(result, pbDelta, lockCount);
+  }
+  return '';
+}
+
+function paintOverlay(): void {
+  overlay.innerHTML = overlayHtml();
+  overlay.hidden = router.screen === 'play';
+  overlay.querySelector<HTMLButtonElement>('button[autofocus]')?.focus();
+}
+
+function startGame(): void {
+  state = createGame(mode.seed(), cfg);
+  result = null;
+  lockCount = 0;
+  startedAt = performance.now();
+  fx.lockFlash = 0;
+  fx.clearFlash = 0;
+  router.go('play');
+  paintOverlay();
+}
+
+function finish(next: ModeResult): void {
+  result = next;
+  const rec: PersonalBest = {
+    score: next.score,
+    lines: next.lines,
+    frames: next.frames,
+  };
+  const saved = writePbIfBetter(mode.pbKey(cfg), rec);
+  pbDelta = saved.delta;
+  router.go('results');
+  paintOverlay();
+}
+
+function resize(): void {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.width = Math.floor(w * dpr);
+  canvas.height = Math.floor(h * dpr);
+  canvas.style.width = `${w}px`;
+  canvas.style.height = `${h}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function draw(now: number): void {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  ctx.fillStyle = THEME.bg;
+  ctx.fillRect(0, 0, w, h);
+  if (!state) return;
+  const layout = computeLayout(w, h, state.width);
+  const ghost = ghostY(state, cfg);
+  renderBoard(ctx, state, layout, ghost, fx, visibleTop(cfg));
+  const elapsed = startedAt ? (now - startedAt) / 1000 : 0;
+  renderHud(ctx, state, layout, fx, elapsed);
+  if (debug) {
+    const dt = lastFrame ? now - lastFrame : 0;
+    recordFrame(dt);
+    debugEl.hidden = false;
+    debugEl.textContent = formatDebug(frameP95(), dt > 0 ? 1000 / dt : 0);
+  }
+  lastFrame = now;
+}
+
+function tick(): void {
+  if (router.screen !== 'play' || !state) return;
+  if (document.hidden) {
+    router.go('pause');
+    paintOverlay();
+    return;
+  }
+  if (keyboard.consumePause()) {
+    router.go('pause');
+    paintOverlay();
+    return;
+  }
+  if (keyboard.restartHeldMs >= 500) {
+    startGame();
+    return;
+  }
+  const { events } = step(state, keyboard.held, cfg);
+  for (const event of events) {
+    fx.onEvent(event);
+    mode.onEvent(event, state);
+    if (event.t === 'lock') lockCount += 1;
+    if (
+      event.t === 'clear' &&
+      event.kind !== 'tspin' &&
+      event.kind !== 'tspinMini'
+    ) {
+      live.textContent = event.kind;
+    }
+    if (event.t === 'topOut') live.textContent = 'top out';
+  }
+  fx.tick();
+  const ended = mode.result(state);
+  if (ended) finish(ended);
+}
+
+overlay.addEventListener('click', (event) => {
+  const btn = (event.target as HTMLElement).closest<HTMLButtonElement>(
+    'button[data-act]',
+  );
+  if (!btn) return;
+  const act = btn.dataset['act'];
+  if (act === 'play' || act === 'retry') startGame();
+  if (act === 'resume') {
+    router.go('play');
+    paintOverlay();
+  }
+  if (act === 'quit') {
+    state = null;
+    router.go('title');
+    paintOverlay();
+  }
+});
+
+window.addEventListener('keydown', (event) => {
+  if (
+    router.screen === 'title' &&
+    (event.code === 'Enter' || event.code === 'Space')
+  ) {
+    event.preventDefault();
+    startGame();
+  }
+  if (
+    router.screen === 'pause' &&
+    (event.code === 'Enter' || event.code === 'Escape' || event.code === 'KeyP')
+  ) {
+    event.preventDefault();
+    router.go('play');
+    paintOverlay();
+  }
+  if (router.screen === 'results' && event.code === 'Enter') {
+    event.preventDefault();
+    startGame();
+  }
+});
+
+keyboard.attach();
+window.addEventListener('resize', resize);
+resize();
+paintOverlay();
+
+createLoop(60, tick, (now) => {
+  draw(now);
+}).start();

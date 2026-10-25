@@ -387,8 +387,8 @@ Six phases take it from empty repo to v1.2; each phase ends with a deployable bu
 
 **Phase 2: Playable Marathon**
 
-- [ ] Canvas renderer, keyboard input with DAS/ARR, hold, preview, ghost
-- [ ] Pause, restart, game over, high score in localStorage
+- [x] Canvas renderer, keyboard input with DAS/ARR, hold, preview, ghost
+- [x] Pause, restart, game over, high score in localStorage
 - [ ] 60 fps on target Chromebook; input latency < 1 frame
 
 **Phase 3: v1 feature set**

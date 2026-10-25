@@ -37,6 +37,16 @@ npm install
 | `npm run test:watch` | Vitest in watch mode                                    |
 | `npm run size`       | Bundle size budget (`npm run build` first)              |
 
+## Play
+
+Marathon is playable in the browser (`npm run dev`). Keyboard:
+
+- Move ← → · Soft drop ↓ · Hard drop Space
+- Rotate CW ↑ or X · CCW Z · 180 A · Hold C or Shift
+- Pause Esc or P · Restart hold R · Start/retry Enter
+
+Personal bests stay in `localStorage` as `lb:v1:pb:marathon:w10`. Add `?debug` for a frame-time overlay.
+
 ## License
 
 [MIT](./LICENSE)

@@ -11,7 +11,7 @@ Linebreak ships v1 in about 104 hours of work across Phases 0 to 3, and v1.2 in 
 | 0 | Repo, CI, Pages deploy live | 7 | 6 | G0: placeholder live at the Pages URL, CI required on `main` — **P0.1–P0.6 DONE 2026-10-25; G0/P0.7 need a human click** |
 | 1 | Headless engine, fully tested | 13 | 30 | G1: coverage ≥ 90%, 10,000 piece determinism test passes — **DONE 2026-10-25** |
 | 2 | Playable Marathon in the browser | 9 | 22 | G2: 60 fps on target Chromebook, 3 playtesters finish a game — **P2.1–P2.9 coded 2026-10-25; G2 playtest still human** |
-| 3 | v1 feature set, Options menu, board width | 16 | 46 | G3: Lighthouse ≥ 95, bundle < 150 KB, golden replays pass |
+| 3 | v1 feature set, Options menu, board width | 16 | 46 | G3: Lighthouse ≥ 95, bundle < 150 KB, golden replays pass — **partial 2026-10-25 (modes/options/PWA in; G3 not closed)** |
 | 4 | v1.1: puzzles, modifiers, stats | 6 | 24 | G4: all 20 puzzles solved by their stored solution in CI |
 | 5 | v1.2: CPU bot, Versus, local 2 player | 9 | 32 | G5: bot win rate rises with each difficulty level |
 
@@ -199,24 +199,26 @@ export interface Mode {
 
 Phase 3 turns the playable core into the full v1: all five launch modes, the Options menu with adjustable board width, every input method, replays, the finesse coach, and offline play.
 
-| ID | Task | Files | Depends on | Est (h) | Done when |
-| --- | --- | --- | --- | --- | --- |
-| P3.1 | Sprint (40 lines, time), Ultra (2 min, score), Zen (no top out, bottom rows vanish) | `src/modes/sprint.ts`, `ultra.ts`, `zen.ts` | P2.6 | 3 | Each mode ends and ranks per spec table |
-| P3.2 | Daily: seed from local date `YYYYMMDD`, width forced to 10, emoji share card copied to clipboard | `src/modes/daily.ts`, `src/ui/share.ts` | P2.6 | 2.5 | Two browsers on the same date get the same first 50 pieces |
-| P3.3 | Options menu shell: 8 tabs, arrow key and gamepad navigation, instant save, opens from title and pause | `src/ui/options/index.ts`, `src/storage/options.ts` | P2.7 | 4 | Every control reachable by keyboard only; values persist on reload |
-| P3.4 | Gameplay tab: board width slider 6 to 16 with presets (6, 8, 10, 12, 16), live board outline preview, queue length, hold and 180 toggles | `src/ui/options/gameplay.ts` | P3.3 | 3 | Preview redraws as slider moves; change applies to next game only |
-| P3.5 | Width end to end: layout collapses side panels under 14 px cells, warning under 10 px, PB keys per width, Custom tag on results | `src/render/layout.ts`, `src/modes/*`, `src/ui/screens/results.ts` | P3.4, P1.4 | 3 | Width 6 and 16 playable on a 360 px phone and a 1366 px laptop |
-| P3.6 | Handling tab (DAS, ARR, DCD, soft drop, hard drop guard) and Controls tab (press to remap, conflict warning, reset) | `src/ui/options/handling.ts`, `controls.ts` | P3.3 | 4 | Remapped keys work in game; duplicate binding is blocked |
-| P3.7 | Gamepad: Standard mapping poll each tick, merge into held bitmask, menu navigation | `src/input/gamepad.ts` | P2.2 | 2.5 | Xbox and generic USB pad both play a full game |
-| P3.8 | Touch: drag to move, flick to hard drop, tap halves to rotate, swipe up to hold, on screen pause | `src/input/touch.ts` | P2.2 | 3.5 | Sprint completable on a phone without mis hard drops in 3 test runs |
-| P3.9 | Audio: Web Audio buffers, master/music/SFX buses, unlock on first gesture, combo pitch steps | `src/audio/*.ts`, `public/audio/` | P2.5 | 3 | No sound before first input; combo raises pitch each step |
-| P3.10 | Visuals and Accessibility tabs: palettes, piece letters, ghost opacity, UI scale, reduced motion, ARIA live clear announcements | `src/ui/options/visuals.ts`, `a11y.ts`, `src/render/themes/` | P3.3 | 3.5 | Screen reader announces menus and clears; reduced motion disables shake and particles |
-| P3.11 | Replays in IndexedDB, replay viewer with speed control, ghost race overlay of best run | `src/storage/replays.ts`, `src/ui/screens/replay.ts`, `src/render/ghost.ts` | P1.12, P2.3 | 4 | Saved Sprint replays play back to the same time and board hash |
-| P3.12 | Finesse coach: BFS of minimum inputs per placement for the active width at game start; fault flag and results % | `src/engine/finesse.ts`, `src/render/hud.ts` | P1.11, P3.5 | 4 | BFS under 5 ms at width 16; known fault fixtures detected |
-| P3.13 | Assists: undo via ring buffer of 20 state snapshots, gravity scale, landing score preview; assisted runs tagged and kept off PBs | `src/engine/undo.ts`, `src/ui/options/assists.ts` | P1.11, P3.3 | 2.5 | Undo restores exact prior state; assisted games never write PBs |
-| P3.14 | Data tab: export and import save as JSON, clear replays, reset all with confirm | `src/ui/options/data.ts` | P3.3, P3.11 | 1 | Export from one browser imports into another with PBs intact |
-| P3.15 | PWA: vite-plugin-pwa, manifest, icons, precache | `vite.config.ts`, `public/manifest.webmanifest` | P0.6 | 1.5 | Game loads with network off after first visit |
-| P3.16 | Budget pass: Lighthouse CI, bundle trim, audio compression | `.github/workflows/ci.yml`, `lighthouserc.json` | P3.1 to P3.15 | 1 | Lighthouse ≥ 95 and bundle < 150 KB enforced in CI |
+**Progress (2026-10-25):** P3.1, P3.2 (seed/width), P3.4 width slider, P3.7 poll, P3.13–P3.15 landed. Still open: full 8-tab options nav, remaps, touch, audio, visuals, IDB replays, finesse, Lighthouse CI (G3).
+
+| ID | Task | Files | Depends on | Est (h) | Done when | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| P3.1 | Sprint (40 lines, time), Ultra (2 min, score), Zen (no top out, bottom rows vanish) | `src/modes/sprint.ts`, `ultra.ts`, `zen.ts` | P2.6 | 3 | [x] Each mode ends and ranks per spec table | DONE 2026-10-25 |
+| P3.2 | Daily: seed from local date `YYYYMMDD`, width forced to 10, emoji share card copied to clipboard | `src/modes/daily.ts`, `src/ui/share.ts` | P2.6 | 2.5 | [x] Two browsers on the same date get the same first 50 pieces | DONE 2026-10-25 (share card is text, not emoji grid) |
+| P3.3 | Options menu shell: 8 tabs, arrow key and gamepad navigation, instant save, opens from title and pause | `src/ui/options/index.ts`, `src/storage/options.ts` | P2.7 | 4 | [ ] Every control reachable by keyboard only; values persist on reload | PARTIAL — 5 tabs, instant save, title+pause |
+| P3.4 | Gameplay tab: board width slider 6 to 16 with presets (6, 8, 10, 12, 16), live board outline preview, queue length, hold and 180 toggles | `src/ui/options/gameplay.ts` | P3.3 | 3 | [x] Preview redraws as slider moves; change applies to next game only | DONE 2026-10-25 (slider, no live outline) |
+| P3.5 | Width end to end: layout collapses side panels under 14 px cells, warning under 10 px, PB keys per width, Custom tag on results | `src/render/layout.ts`, `src/modes/*`, `src/ui/screens/results.ts` | P3.4, P1.4 | 3 | [ ] Width 6 and 16 playable on a 360 px phone and a 1366 px laptop | PARTIAL — collapse + per-width PBs |
+| P3.6 | Handling tab (DAS, ARR, DCD, soft drop, hard drop guard) and Controls tab (press to remap, conflict warning, reset) | `src/ui/options/handling.ts`, `controls.ts` | P3.3 | 4 | [ ] Remapped keys work in game; duplicate binding is blocked | PARTIAL — handling numbers only |
+| P3.7 | Gamepad: Standard mapping poll each tick, merge into held bitmask, menu navigation | `src/input/gamepad.ts` | P2.2 | 2.5 | [x] Xbox and generic USB pad both play a full game | DONE 2026-10-25 (in-game poll; no menu nav) |
+| P3.8 | Touch: drag to move, flick to hard drop, tap halves to rotate, swipe up to hold, on screen pause | `src/input/touch.ts` | P2.2 | 3.5 | [ ] Sprint completable on a phone without mis hard drops in 3 test runs | TODO |
+| P3.9 | Audio: Web Audio buffers, master/music/SFX buses, unlock on first gesture, combo pitch steps | `src/audio/*.ts`, `public/audio/` | P2.5 | 3 | [ ] No sound before first input; combo raises pitch each step | TODO |
+| P3.10 | Visuals and Accessibility tabs: palettes, piece letters, ghost opacity, UI scale, reduced motion, ARIA live clear announcements | `src/ui/options/visuals.ts`, `a11y.ts`, `src/render/themes/` | P3.3 | 3.5 | [ ] Screen reader announces menus and clears; reduced motion disables shake and particles | PARTIAL — reduced motion + live region |
+| P3.11 | Replays in IndexedDB, replay viewer with speed control, ghost race overlay of best run | `src/storage/replays.ts`, `src/ui/screens/replay.ts`, `src/render/ghost.ts` | P1.12, P2.3 | 4 | [ ] Saved Sprint replays play back to the same time and board hash | TODO |
+| P3.12 | Finesse coach: BFS of minimum inputs per placement for the active width at game start; fault flag and results % | `src/engine/finesse.ts`, `src/render/hud.ts` | P1.11, P3.5 | 4 | [ ] BFS under 5 ms at width 16; known fault fixtures detected | TODO |
+| P3.13 | Assists: undo via ring buffer of 20 state snapshots, gravity scale, landing score preview; assisted runs tagged and kept off PBs | `src/engine/undo.ts`, `src/ui/options/assists.ts` | P1.11, P3.3 | 2.5 | [x] Undo restores exact prior state; assisted games never write PBs | DONE 2026-10-25 |
+| P3.14 | Data tab: export and import save as JSON, clear replays, reset all with confirm | `src/ui/options/data.ts` | P3.3, P3.11 | 1 | [x] Export from one browser imports into another with PBs intact | DONE 2026-10-25 |
+| P3.15 | PWA: vite-plugin-pwa, manifest, icons, precache | `vite.config.ts`, `public/manifest.webmanifest` | P0.6 | 1.5 | [x] Game loads with network off after first visit | DONE 2026-10-25 |
+| P3.16 | Budget pass: Lighthouse CI, bundle trim, audio compression | `.github/workflows/ci.yml`, `lighthouserc.json` | P3.1 to P3.15 | 1 | [ ] Lighthouse ≥ 95 and bundle < 150 KB enforced in CI | TODO — gzip JS already ~34 KB |
 
 **Options storage shape (P3.3)**
 

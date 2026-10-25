@@ -1,6 +1,6 @@
 # Linebreak Implementation Plan
 
-Oct 24, 2026 · @bc
+Oct 24, 2026 · @bc · progress updated Oct 25, 2026
 
 ## Plan at a glance
 
@@ -8,7 +8,7 @@ Linebreak ships v1 in about 104 hours of work across Phases 0 to 3, and v1.2 in 
 
 | Phase | Outcome | Tasks | Effort (h) | Gate to exit |
 | --- | --- | --- | --- | --- |
-| 0 | Repo, CI, Pages deploy live | 7 | 6 | G0: placeholder live at the Pages URL, CI required on `main` |
+| 0 | Repo, CI, Pages deploy live | 7 | 6 | G0: placeholder live at the Pages URL, CI required on `main` — **P0.1–P0.6 DONE 2026-10-25; G0/P0.7 need a human click** |
 | 1 | Headless engine, fully tested | 13 | 30 | G1: coverage ≥ 90%, 10,000 piece determinism test passes |
 | 2 | Playable Marathon in the browser | 9 | 22 | G2: 60 fps on target Chromebook, 3 playtesters finish a game |
 | 3 | v1 feature set, Options menu, board width | 16 | 46 | G3: Lighthouse ≥ 95, bundle < 150 KB, golden replays pass |
@@ -53,15 +53,17 @@ One task = one branch = one PR, merged only when CI is green and the task's "Don
 
 Phase 0 ends with a placeholder page live on GitHub Pages and every later PR blocked until CI passes.
 
-| ID | Task | Files | Depends on | Est (h) | Done when |
-| --- | --- | --- | --- | --- | --- |
-| P0.1 | Create `linebreak` repo with MIT license, README stub, Node `.gitignore`, `.nvmrc` (Node 20) | `README.md`, `LICENSE`, `.nvmrc` | None | 0.5 | Repo exists, clones cleanly |
-| P0.2 | Scaffold Vite vanilla TS; `strict`, `noUncheckedIndexedAccess`; `@/` path alias | `vite.config.ts`, `tsconfig.json`, `index.html`, `src/main.ts` | P0.1 | 1 | `npm run dev` serves a page |
-| P0.3 | ESLint (typescript-eslint) + Prettier + husky + lint-staged; engine purity rules stubbed | `eslint.config.js`, `.prettierrc`, `.husky/` | P0.2 | 1 | `npm run lint` passes; bad import into `src/engine` fails |
-| P0.4 | Vitest with v8 coverage; one sample test | `vitest.config.ts`, `tests/smoke.test.ts` | P0.2 | 0.5 | `npm test` passes with coverage report |
-| P0.5 | `ci.yml`: install, lint, typecheck, test, build, `size-limit` check on every PR | `.github/workflows/ci.yml`, `.size-limit.json` | P0.3, P0.4 | 1.5 | Failing test turns the PR red |
-| P0.6 | `deploy.yml` with `configure-pages`, `upload-pages-artifact`, `deploy-pages`; set `base: '/linebreak/'`; Pages source = GitHub Actions | `.github/workflows/deploy.yml`, `vite.config.ts` | P0.5 | 1 | Push to `main` updates the live URL within 2 minutes |
-| P0.7 | Protect `main`: require CI, no direct pushes | Repo settings | P0.5 | 0.5 | Direct push to `main` is rejected |
+**Progress (2026-10-25):** P0.1–P0.6 are implemented (scaffold, lint, tests, CI, deploy workflow). G0 is not closed yet: after this merges, a human must set Pages source to GitHub Actions and protect `main` (P0.7).
+
+| ID | Task | Files | Depends on | Est (h) | Done when | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| P0.1 | Create `linebreak` repo with MIT license, README stub, Node `.gitignore`, `.nvmrc` (Node 20) | `README.md`, `LICENSE`, `.nvmrc` | None | 0.5 | [x] Repo exists, clones cleanly | DONE 2026-10-25 |
+| P0.2 | Scaffold Vite vanilla TS; `strict`, `noUncheckedIndexedAccess`; `@/` path alias | `vite.config.ts`, `tsconfig.json`, `index.html`, `src/main.ts` | P0.1 | 1 | [x] `npm run dev` serves a page | DONE 2026-10-25 |
+| P0.3 | ESLint (typescript-eslint) + Prettier + husky + lint-staged; engine purity rules stubbed | `eslint.config.js`, `.prettierrc`, `.husky/` | P0.2 | 1 | [x] `npm run lint` passes; bad import into `src/engine` fails | DONE 2026-10-25 |
+| P0.4 | Vitest with v8 coverage; one sample test | `vitest.config.ts`, `tests/smoke.test.ts` | P0.2 | 0.5 | [x] `npm test` passes with coverage report | DONE 2026-10-25 |
+| P0.5 | `ci.yml`: install, lint, typecheck, test, build, `size-limit` check on every PR | `.github/workflows/ci.yml`, `.size-limit.json` | P0.3, P0.4 | 1.5 | [x] Failing test turns the PR red | DONE 2026-10-25 |
+| P0.6 | `deploy.yml` with `configure-pages`, `upload-pages-artifact`, `deploy-pages`; set `base: '/linebreak/'`; Pages source = GitHub Actions | `.github/workflows/deploy.yml`, `vite.config.ts` | P0.5 | 1 | [ ] Push to `main` updates the live URL within 2 minutes | DONE 2026-10-25 (workflow ready; Pages source still a human click) |
+| P0.7 | Protect `main`: require CI, no direct pushes | Repo settings | P0.5 | 0.5 | [ ] Direct push to `main` is rejected | TODO — human: Settings → Branches |
 
 **npm scripts to add in P0.2 to P0.5**
 

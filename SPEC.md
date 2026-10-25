@@ -375,9 +375,9 @@ Six phases take it from empty repo to v1.2; each phase ends with a deployable bu
 
 **Phase 0: Repo and pipeline**
 
-- [ ] Vite + TS scaffold, ESLint, Prettier, Vitest
-- [ ] `ci.yml` runs on every PR; `deploy.yml` publishes a placeholder page on push to `main`
-- [ ] Live URL loads with correct `base` path
+- [x] Vite + TS scaffold, ESLint, Prettier, Vitest
+- [x] `ci.yml` runs on every PR; `deploy.yml` publishes a placeholder page on push to `main`
+- [ ] Live URL loads with correct `base` path (needs Pages source = GitHub Actions after merge)
 
 **Phase 1: Engine core (headless)**
 
